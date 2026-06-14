@@ -374,6 +374,9 @@ void CConfigManager::init() {
     m_AnimationTree.createNode("inputFieldWidth", "inputField");
     m_AnimationTree.createNode("inputFieldDots", "inputField");
 
+    m_AnimationTree.createNode("inputFieldPos", "inputField");
+
+
     // fade
     m_AnimationTree.createNode("fadeIn", "fade");
     m_AnimationTree.createNode("fadeOut", "fade");
@@ -649,7 +652,7 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
         return {};
     }
 
-    int64_t speed = -1;
+    float speed = -1;
 
     // speed
     if (isNumber(ARGS[2], true)) {

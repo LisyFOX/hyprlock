@@ -84,9 +84,16 @@ void CPasswordInputField::configure(const std::unordered_map<std::string, std::a
     g_pAnimationManager->createAnimation(colorConfig.inner, colorState.inner, g_pConfigManager->m_AnimationTree.getConfig("inputFieldColors"));
     g_pAnimationManager->createAnimation(*colorConfig.outer, colorState.outer, g_pConfigManager->m_AnimationTree.getConfig("inputFieldColors"));
 
+
+    g_pAnimationManager->createAnimation(pos, animPos, g_pConfigManager->m_AnimationTree.getConfig("inputFieldPos"));
+
+    //pos = animPos->value();
+
+
     srand(std::chrono::system_clock::now().time_since_epoch().count());
 
     pos = posFromHVAlign(viewport, size->goal(), configPos, halign, valign);
+    basePos = pos;
 
     if (!dots.textFormat.empty()) {
         Hyprgraphics::CTextResource::STextResourceData request;
@@ -160,6 +167,7 @@ void CPasswordInputField::updateFade() {
         redrawShadow = true;
 }
 
+
 void CPasswordInputField::updateDots() {
     if (dots.currentAmount->goal() == passwordLength)
         return;
@@ -167,11 +175,14 @@ void CPasswordInputField::updateDots() {
     if (checkWaiting && configCheckText.empty())
         return;
 
+    if (displayFail && (animPos->isBeingAnimated() || keyframeId != -1)) return;
+
     if (passwordLength == 0)
         dots.currentAmount->setValueAndWarp(passwordLength);
     else
-        *dots.currentAmount = passwordLength;
+        *dots.currentAmount = passwordLength;    
 }
+
 
 bool CPasswordInputField::draw(const SRenderData& data) {
     if (firstRender || redrawShadow) {
@@ -186,12 +197,28 @@ bool CPasswordInputField::draw(const SRenderData& data) {
     checkWaiting   = g_pAuth->checkWaiting();
     displayFail    = g_pAuth->m_bDisplayFailText;
 
+    if (displayFail && !animPos->isBeingAnimated() && keyframeId != -1) {
+        *animPos = basePos + Vector2D(keyframes.at(keyframeId), 0);
+        keyframeId++;
+        
+        if (keyframeId >= (int) keyframes.size()) {
+            Log::logger->log(Log::INFO, "reset");
+            keyframeId = -1;
+        }
+    }
+    
+    if (!displayFail && keyframeId == -1) keyframeId = 0;
+
     updateFade();
     updateDots();
     updateColors();
     updatePlaceholder();
     updateWidth();
     updateHiddenInputState();
+
+
+
+    pos = animPos->value();
 
     CBox        inputFieldBox = {pos, size->value()};
     CBox        outerBox      = {pos - Vector2D{outThick, outThick}, size->value() + Vector2D{outThick * 2, outThick * 2}};
@@ -300,7 +327,7 @@ bool CPasswordInputField::draw(const SRenderData& data) {
         }
     }
 
-    bool placeholderPasswordCondition = (passwordLength == 0 && placeholder.resourceID > 0);
+    bool placeholderPasswordCondition = (passwordLength == 0 && dots.currentAmount->value() == 0 && placeholder.resourceID > 0);
 
     if (placeholderPasswordCondition && (!checkWaiting || (checkWaiting && !configCheckText.empty()))) {
         ASP<CTexture> currAsset = nullptr;
@@ -358,7 +385,7 @@ void CPasswordInputField::updatePlaceholder() {
     if (!ALLOWCOLORSWAP && newText == placeholder.currentText)
         return;
 
-    Log::logger->log(Log::INFO, "Updating placeholder text: {}", newText);
+    // Log::logger->log(Log::INFO, "Updating placeholder text: {}", newText);
     placeholder.currentText = newText;
     placeholder.asset       = nullptr;
 

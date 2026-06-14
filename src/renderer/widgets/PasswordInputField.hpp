@@ -50,8 +50,14 @@ class CPasswordInputField : public IWidget {
 
     size_t                   passwordLength = 0;
 
+    std::vector<int>         keyframes = {0, 12, -12, 10, -10, 7, -7, 4, -4, 0};
+    int                      keyframeId = 0;
+    float                   animationStartTime = 0;
+
     PHLANIMVAR<Vector2D>     size;
     Vector2D                 pos;
+    Vector2D                 basePos;
+    PHLANIMVAR<Vector2D>     animPos;
     Vector2D                 viewport;
     Vector2D                 configPos;
     Vector2D                 configSize;
